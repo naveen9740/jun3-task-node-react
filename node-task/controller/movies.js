@@ -5,31 +5,42 @@ const moviesModel = require("../models/movies.model");
 // add movies to db
 const addMovies = async (req, res) => {
   try {
-    moviesList.map(async (movie) => {
-      const newMovie = new moviesModel(movie);
-      const moviesAdded = await newMovie.save();
-      if (moviesAdded) {
-        res.status(200).json({ message: "Movies Added Successfully" });
-      } else {
-        res.status(400).json({ message: "error" });
-      }
-    });
+    // insert all movies at once to db.
+    await moviesModel.create(moviesList);
+    return res.status(200).json({ message: "Movies Added Successfully" });
   } catch (error) {
-    throw new Error(error);
+    // handle error
+    if (error.name === "ValidationError") {
+      let errors = {};
+      Object.keys(error.errors).forEach((key) => {
+        errors[key] = error.errors[key].message;
+      });
+      return res.status(400).send(errors);
+    } else {
+      return res.status(400).send(error);
+    }
   }
 };
 // get movies from db
 const getMovies = async (req, res) => {
-  const movies = await moviesModel.find();
-  res
-    .status(200)
-    .json({ message: "Movies Retrieved", movies, length: movies.length });
+  try {
+    const movies = await moviesModel.find();
+    res
+      .status(200)
+      .json({ message: "Movies Retrieved", movies, length: movies.length });
+  } catch (error) {
+    return res.status(400).send(error);
+  }
 };
 
 // get single movie from db using title
 const getSingleMovie = async (req, res) => {
-  const movie = await moviesModel.findOne({ title: req.body.title });
-  res.status(200).json({ message: "Movies Retrieved", movie });
+  try {
+    const movie = await moviesModel.findOne({ title: req.body.title });
+    res.status(200).json({ message: "Movies Retrieved", movie });
+  } catch (error) {
+    return res.status(400).send(error);
+  }
 };
 
 module.exports = { addMovies, getMovies, getSingleMovie };
